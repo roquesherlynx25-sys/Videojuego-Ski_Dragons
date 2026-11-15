@@ -34,4 +34,11 @@ public class DragonController : MonoBehaviour
             rb.linearVelocity = Vector2.up * fuerzaAleteo;
         }
     }
+    ///Se llama automáticamente cuando el dragón choca con otro collider.
+    ///Por ahora solo muestra un mensaje y detiene el juego.
+    private void OnCollisionEnter2D(Collision2D colision)
+    {
+        Debug.Log("¡Game Over! Chocaste con " + colision.collider.name);
+        Time.timeScale = 0f; // Congela el juego
+    }
 }
