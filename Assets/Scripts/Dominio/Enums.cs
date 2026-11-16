@@ -19,3 +19,11 @@ public enum OrigenObjeto
     Biomas = 2,
     Ambos = Tienda | Biomas
 }
+
+/// <summary>Modos de juego disponibles.</summary>
+public enum TipoModo
+{
+    Infinito,
+    Niveles,
+    Biomas
+}
