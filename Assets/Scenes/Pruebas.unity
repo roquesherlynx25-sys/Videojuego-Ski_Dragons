@@ -173,9 +173,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 152998652}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb9211efb9bff884cb772003b80ce224, type: 3}
+  m_Script: {fileID: 11500000, guid: 7ddd509692cf9894a894c7604a7f6d38, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PruebaDragones
+  m_EditorClassIdentifier: Assembly-CSharp::PruebaEstado
 --- !u!1 &966441888
 GameObject:
   m_ObjectHideFlags: 0
