@@ -1,15 +1,18 @@
 using System;
 
-/// <summary>Estados posibles de una partida.</summary>
+/// <summary>
+/// Estados posibles de una partida. El GameManager cambia entre ellos.
+/// </summary>
 public enum EstadoPartida
 {
     Jugando,
+    Pregunta,
     GameOver
 }
 
 /// <summary>
-/// Dónde se puede conseguir un objeto: tienda, biomas o ambos.
-/// Es un enum de banderas (Flags), así que se pueden combinar con |.
+/// DÃ³nde se puede conseguir un objeto: tienda, biomas o ambos.
+/// Es un enum de banderas (Flags), asÃ­ que se pueden combinar con |.
 /// </summary>
 [Flags]
 public enum OrigenObjeto
