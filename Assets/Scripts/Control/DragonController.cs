@@ -1,22 +1,27 @@
 using UnityEngine;
 
 /// <summary>
-/// Controla al dragón en la partida: aleteo, límites de pantalla, choques
-/// y uso de la habilidad del personaje elegido en el menú.
+/// Controla al dragón en la partida: aleteo, límites de pantalla, choques,
+/// habilidad del personaje elegido y reaparición al revivir con el Ángel.
 /// </summary>
 public class DragonController : MonoBehaviour
 {
     [SerializeField] private float fuerzaAleteo = 5f;
     [SerializeField] private float limiteInferior = -5.5f;
     [SerializeField] private float limiteSuperior = 5.5f;
+    [SerializeField] private float segundosInvulnerable = 2f;
 
     private Rigidbody2D rb;
     private Collider2D colision;
     private SpriteRenderer sprite;
     private Color colorBase;
+    private float invulnerableHasta;
 
     /// <summary>Personaje elegido en el menú (Jinete si se juega sin pasar por él).</summary>
     public Personaje Personaje { get; private set; }
+
+    /// <summary>True durante los segundos de protección tras revivir.</summary>
+    private bool Invulnerable => Time.unscaledTime < invulnerableHasta;
 
     private void Awake()
     {
@@ -32,6 +37,19 @@ public class DragonController : MonoBehaviour
         else if (Personaje is DragonGorgon) colorBase = new Color(0.6f, 1f, 0.6f);
         else colorBase = Color.white;
         sprite.color = colorBase;
+    }
+
+    private void Start()
+    {
+        GameManager.Instancia.OnRevivir += Reaparecer;
+    }
+
+    private void OnDestroy()
+    {
+        if (GameManager.Instancia != null)
+        {
+            GameManager.Instancia.OnRevivir -= Reaparecer;
+        }
     }
 
     private void Update()
@@ -54,10 +72,14 @@ public class DragonController : MonoBehaviour
         // Andary reduce el tiempo del juego mientras su habilidad está activa.
         Time.timeScale = (dragon is DragonAndary andary) ? andary.Tiempo.EscalaTiempo : 1f;
 
-        // Gorgón: con el escudo, el collider se vuelve trigger y atraviesa las torres.
-        bool inmune = dragon is DragonGorgon gorgon && gorgon.Dureza.EsInmune;
-        colision.isTrigger = inmune;
-        sprite.color = inmune ? Color.yellow : colorBase;
+        // Gorgón: con el escudo (o la protección al revivir) atraviesa las torres.
+        bool escudo = dragon is DragonGorgon gorgon && gorgon.Dureza.EsInmune;
+        bool atraviesa = escudo || Invulnerable;
+        colision.isTrigger = atraviesa;
+
+        if (escudo) sprite.color = Color.yellow;
+        else if (Invulnerable) sprite.color = new Color(1f, 1f, 1f, 0.5f);
+        else sprite.color = colorBase;
 
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         {
@@ -66,19 +88,29 @@ public class DragonController : MonoBehaviour
 
         if (transform.position.y < limiteInferior || transform.position.y > limiteSuperior)
         {
-            Debug.Log("¡Game Over! El dragón salió de la pantalla");
+            Debug.Log("El dragón salió de la pantalla");
             GameManager.Instancia.TerminarPartida();
         }
     }
 
-    private void OnCollisionEnter2D(Collision2D otro) { Chocar(otro); }
+    /// <summary>Al revivir: vuelve al centro, sin velocidad y con protección breve.</summary>
+    private void Reaparecer()
+    {
+        transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
+        rb.linearVelocity = Vector2.zero;
+        invulnerableHasta = Time.unscaledTime + segundosInvulnerable;
+    }
+
+    private void OnCollisionEnter2D(Collision2D otro) { Chocar(otro.collider.name); }
 
     // Por si el escudo termina mientras el dragón sigue tocando una torre.
-    private void OnCollisionStay2D(Collision2D otro) { Chocar(otro); }
+    private void OnCollisionStay2D(Collision2D otro) { Chocar(otro.collider.name); }
 
-    private void Chocar(Collision2D otro)
+    private void Chocar(string nombre)
     {
-        Debug.Log("¡Game Over! Chocaste con " + otro.collider.name);
+        if (Invulnerable) return;
+
+        Debug.Log("Choque con " + nombre);
         GameManager.Instancia.TerminarPartida();
     }
 }

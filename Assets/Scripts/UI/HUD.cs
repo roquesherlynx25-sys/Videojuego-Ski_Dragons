@@ -2,28 +2,51 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Muestra puntos, Game Over y el estado de la habilidad del personaje.
+/// Muestra en pantalla el progreso del modo (puntos y monedas), el estado
+/// de la habilidad, los fragmentos del Ángel y el mensaje de Game Over.
+/// Escucha los eventos del GameManager.
 /// </summary>
 public class HUD : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI textoPuntos;
     [SerializeField] private GameObject textoGameOver;
     [SerializeField] private TextMeshProUGUI textoHabilidad;
+    [SerializeField] private TextMeshProUGUI textoAngel; // opcional
 
     private DragonController dragon;
 
     private void Start()
     {
-        GameManager.Instancia.OnPuntosCambiados += ActualizarPuntos;
-        GameManager.Instancia.OnGameOver += MostrarGameOver;
+        GameManager gm = GameManager.Instancia;
+        gm.OnProgresoCambiado += ActualizarProgreso;
+        gm.OnGameOver += MostrarGameOver;
 
         dragon = FindFirstObjectByType<DragonController>();
 
-        ActualizarPuntos(0);
+        ActualizarProgreso();
         textoGameOver.SetActive(false);
     }
 
     private void Update()
+    {
+        ActualizarHabilidad();
+        ActualizarAngel();
+    }
+
+    private void OnDestroy()
+    {
+        if (GameManager.Instancia == null) return;
+
+        GameManager.Instancia.OnProgresoCambiado -= ActualizarProgreso;
+        GameManager.Instancia.OnGameOver -= MostrarGameOver;
+    }
+
+    private void ActualizarProgreso()
+    {
+        textoPuntos.text = GameManager.Instancia.Modo.TextoProgreso();
+    }
+
+    private void ActualizarHabilidad()
     {
         if (textoHabilidad == null || dragon == null || dragon.Personaje == null) return;
 
@@ -41,20 +64,28 @@ public class HUD : MonoBehaviour
         }
     }
 
-    private void OnDestroy()
+    private void ActualizarAngel()
     {
-        if (GameManager.Instancia == null) return;
-        GameManager.Instancia.OnPuntosCambiados -= ActualizarPuntos;
-        GameManager.Instancia.OnGameOver -= MostrarGameOver;
-    }
+        if (textoAngel == null) return;
 
-    private void ActualizarPuntos(int puntos)
-    {
-        textoPuntos.text = puntos.ToString();
+        EstadoJugador jugador = SesionJuego.Jugador;
+        Angel angel = jugador.ObtenerEquipado<Angel>();
+
+        textoAngel.text = angel == null
+            ? ""
+            : "Ángel: " + jugador.FragmentosAngel + "/" + Angel.FragmentosNecesarios + " fragmentos";
     }
 
     private void MostrarGameOver()
     {
         textoGameOver.SetActive(true);
+
+        TextMeshProUGUI texto = textoGameOver.GetComponent<TextMeshProUGUI>();
+        if (texto == null) return;
+
+        GameManager gm = GameManager.Instancia;
+        string record = gm.NuevoRecord ? "¡NUEVO RÉCORD!" : "Récord: " + gm.Record;
+
+        texto.text = "GAME OVER\n" + gm.Modo.TextoProgreso() + "\n" + record + "\nPulsa R para reiniciar";
     }
 }
