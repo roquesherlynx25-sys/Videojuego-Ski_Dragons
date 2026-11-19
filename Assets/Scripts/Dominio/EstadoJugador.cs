@@ -58,6 +58,25 @@ public class EstadoJugador
         OnFragmentosCambiados?.Invoke(fragmentosAngel);
     }
 
+    /// <summary>Gasta fragmentos de Ángel. Devuelve false si no alcanzan.</summary>
+    public bool GastarFragmentosAngel(int cantidad)
+    {
+        if (cantidad < 0 || cantidad > fragmentosAngel) return false;
+
+        fragmentosAngel -= cantidad;
+        OnFragmentosCambiados?.Invoke(fragmentosAngel);
+        return true;
+    }
+
+    /// <summary>Carga los valores guardados (monedas y fragmentos).</summary>
+    public void Cargar(int monedasGuardadas, int fragmentosGuardados)
+    {
+        monedas = Math.Max(0, monedasGuardadas);
+        fragmentosAngel = Math.Max(0, fragmentosGuardados);
+        OnMonedasCambiadas?.Invoke(monedas);
+        OnFragmentosCambiados?.Invoke(fragmentosAngel);
+    }
+
     /// <summary>Equipa un objeto si no lo tenía ya. Devuelve si lo logró.</summary>
     public bool Equipar(IEquipable objeto)
     {
@@ -75,6 +94,19 @@ public class EstadoJugador
 
         objeto.AlDesequipar(this);
         return true;
+    }
+
+    /// <summary>
+    /// Busca entre los equipados un objeto de un tipo concreto
+    /// (por ejemplo Angel). Devuelve null si no hay ninguno.
+    /// </summary>
+    public T ObtenerEquipado<T>() where T : class, IEquipable
+    {
+        foreach (IEquipable objeto in equipados)
+        {
+            if (objeto is T encontrado) return encontrado;
+        }
+        return null;
     }
 
     public override string ToString()
