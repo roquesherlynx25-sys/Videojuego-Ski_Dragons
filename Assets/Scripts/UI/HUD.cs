@@ -2,9 +2,9 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Muestra en pantalla el progreso del modo (puntos y monedas), el estado
-/// de la habilidad, los fragmentos del Ángel y el mensaje de Game Over.
-/// Escucha los eventos del GameManager.
+/// Muestra en pantalla el progreso del modo (puntos o nivel y etapa, y
+/// monedas), el estado de la habilidad, los fragmentos del Ángel y los
+/// mensajes de Game Over y Victoria. Escucha los eventos del GameManager.
 /// </summary>
 public class HUD : MonoBehaviour
 {
@@ -20,6 +20,7 @@ public class HUD : MonoBehaviour
         GameManager gm = GameManager.Instancia;
         gm.OnProgresoCambiado += ActualizarProgreso;
         gm.OnGameOver += MostrarGameOver;
+        gm.OnVictoria += MostrarVictoria;
 
         dragon = FindFirstObjectByType<DragonController>();
 
@@ -39,6 +40,7 @@ public class HUD : MonoBehaviour
 
         GameManager.Instancia.OnProgresoCambiado -= ActualizarProgreso;
         GameManager.Instancia.OnGameOver -= MostrarGameOver;
+        GameManager.Instancia.OnVictoria -= MostrarVictoria;
     }
 
     private void ActualizarProgreso()
@@ -78,14 +80,32 @@ public class HUD : MonoBehaviour
 
     private void MostrarGameOver()
     {
+        GameManager gm = GameManager.Instancia;
+
+        // El récord solo existe en el modo Infinito.
+        string record = "";
+        if (gm.Modo is ModoInfinito)
+        {
+            record = (gm.NuevoRecord ? "¡NUEVO RÉCORD!" : "Récord: " + gm.Record) + "\n";
+        }
+
+        MostrarMensaje("GAME OVER\n" + gm.Modo.TextoProgreso() + "\n" + record + "Pulsa R para reiniciar");
+    }
+
+    private void MostrarVictoria()
+    {
+        GameManager gm = GameManager.Instancia;
+        MostrarMensaje("¡VICTORIA!\n" + gm.Modo.TextoProgreso() + "\nPulsa R para reiniciar");
+    }
+
+    private void MostrarMensaje(string mensaje)
+    {
         textoGameOver.SetActive(true);
 
         TextMeshProUGUI texto = textoGameOver.GetComponent<TextMeshProUGUI>();
-        if (texto == null) return;
-
-        GameManager gm = GameManager.Instancia;
-        string record = gm.NuevoRecord ? "¡NUEVO RÉCORD!" : "Récord: " + gm.Record;
-
-        texto.text = "GAME OVER\n" + gm.Modo.TextoProgreso() + "\n" + record + "\nPulsa R para reiniciar";
+        if (texto != null)
+        {
+            texto.text = mensaje;
+        }
     }
 }

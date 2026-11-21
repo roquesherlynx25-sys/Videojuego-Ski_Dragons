@@ -1,7 +1,9 @@
 using UnityEngine;
 
+/// <summary>
 /// Zona invisible en el hueco de las torres. Cuando el dragón la
 /// atraviesa, suma un punto (una sola vez por par de torres).
+/// </summary>
 public class ZonaPunto : MonoBehaviour
 {
     private bool contado;

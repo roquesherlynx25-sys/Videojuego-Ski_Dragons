@@ -18,7 +18,10 @@ public abstract class ModoJuego
     /// <summary>Indica si el modo ya terminó (los finitos lo sobrescriben).</summary>
     public virtual bool HaTerminado => false;
 
-    /// <summary>Evento: cambió el progreso (puntos o monedas).</summary>
+    /// <summary>Multiplicador de la velocidad de los obstáculos (1 = normal).</summary>
+    public virtual float MultiplicadorVelocidad => 1f;
+
+    /// <summary>Evento: cambió el progreso (puntos, monedas o nivel).</summary>
     public event Action OnProgresoCambiado;
 
     /// <summary>Suma un obstáculo superado.</summary>
@@ -26,7 +29,7 @@ public abstract class ModoJuego
     {
         Puntos++;
         AlRegistrarObstaculo();
-        OnProgresoCambiado?.Invoke();
+        NotificarProgreso();
     }
 
     /// <summary>Suma monedas recogidas en esta partida.</summary>
@@ -35,12 +38,18 @@ public abstract class ModoJuego
         if (cantidad <= 0) return;
 
         MonedasRecogidas += cantidad;
-        OnProgresoCambiado?.Invoke();
+        NotificarProgreso();
     }
 
     /// <summary>Gancho para que cada modo reaccione al superar un obstáculo.</summary>
     protected virtual void AlRegistrarObstaculo()
     {
+    }
+
+    /// <summary>Avisa a quien escuche que el progreso cambió.</summary>
+    protected void NotificarProgreso()
+    {
+        OnProgresoCambiado?.Invoke();
     }
 
     /// <summary>Texto de progreso que se muestra en pantalla (polimorfismo).</summary>

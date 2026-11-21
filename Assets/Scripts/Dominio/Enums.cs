@@ -7,7 +7,8 @@ public enum EstadoPartida
 {
     Jugando,
     Pregunta,
-    GameOver
+    GameOver,
+    Victoria
 }
 
 /// <summary>

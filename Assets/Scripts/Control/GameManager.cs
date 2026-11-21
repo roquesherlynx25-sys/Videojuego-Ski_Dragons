@@ -4,8 +4,8 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Controla la partida: estado, modo de juego, puntos, monedas, revivir
-/// con el Ángel, Game Over y reinicio. Es un singleton: solo existe uno
-/// y se accede con GameManager.Instancia.
+/// con el Ángel, victoria, Game Over y reinicio. Es un singleton: solo
+/// existe uno y se accede con GameManager.Instancia.
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -15,11 +15,14 @@ public class GameManager : MonoBehaviour
     /// <summary>Estado actual de la partida.</summary>
     public EstadoPartida Estado { get; private set; } = EstadoPartida.Jugando;
 
-    /// <summary>Modo de juego en curso (Infinito, por ahora).</summary>
+    /// <summary>Modo de juego en curso (Infinito o Niveles).</summary>
     public ModoJuego Modo { get; private set; }
 
     /// <summary>Puntos de la partida (obstáculos superados).</summary>
     public int Puntos => Modo.Puntos;
+
+    /// <summary>Velocidad de los obstáculos según el modo y el nivel (1 = normal).</summary>
+    public float MultiplicadorVelocidad => Modo.MultiplicadorVelocidad;
 
     /// <summary>Mejor puntuación guardada del modo Infinito.</summary>
     public int Record { get; private set; }
@@ -27,11 +30,14 @@ public class GameManager : MonoBehaviour
     /// <summary>True si la partida que acaba de terminar superó el récord.</summary>
     public bool NuevoRecord { get; private set; }
 
-    /// <summary>Evento: cambiaron los puntos o las monedas.</summary>
+    /// <summary>Evento: cambiaron los puntos, las monedas o el nivel.</summary>
     public event Action OnProgresoCambiado;
 
-    /// <summary>Evento: la partida terminó.</summary>
+    /// <summary>Evento: la partida terminó por derrota.</summary>
     public event Action OnGameOver;
+
+    /// <summary>Evento: el jugador completó el modo finito.</summary>
+    public event Action OnVictoria;
 
     /// <summary>Evento: hay que mostrar una pregunta de POO para revivir.</summary>
     public event Action<PreguntaPOO> OnPreguntaRevivir;
@@ -61,18 +67,22 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        // En Game Over, la tecla R reinicia la partida.
-        if (Estado == EstadoPartida.GameOver && Input.GetKeyDown(KeyCode.R))
+        // Al terminar la partida (derrota o victoria), la tecla R reinicia.
+        bool terminada = Estado == EstadoPartida.GameOver || Estado == EstadoPartida.Victoria;
+
+        if (terminada && Input.GetKeyDown(KeyCode.R))
         {
             Reiniciar();
         }
     }
 
-    /// <summary>Crea el modo elegido. Por ahora solo existe el Infinito.</summary>
+    /// <summary>Crea el modo elegido en el menú (Biomas aún no existe).</summary>
     private static ModoJuego CrearModo(TipoModo tipo)
     {
         switch (tipo)
         {
+            case TipoModo.Niveles:
+                return new ModoNiveles();
             case TipoModo.Infinito:
             default:
                 return new ModoInfinito();
@@ -90,6 +100,16 @@ public class GameManager : MonoBehaviour
         if (Estado != EstadoPartida.Jugando) return;
 
         Modo.RegistrarObstaculo();
+        ComprobarVictoria();
+    }
+
+    /// <summary>Si el modo ya terminó (nivel final completado), gana la partida.</summary>
+    public void ComprobarVictoria()
+    {
+        if (Estado == EstadoPartida.Jugando && Modo.HaTerminado)
+        {
+            Ganar();
+        }
     }
 
     /// <summary>El dragón recogió una moneda: se suma al jugador y al modo.</summary>
@@ -166,6 +186,15 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         OnRevivir?.Invoke();
         AvisarProgreso();
+    }
+
+    private void Ganar()
+    {
+        Estado = EstadoPartida.Victoria;
+        Time.timeScale = 0f;
+
+        Persistencia.Guardar(SesionJuego.Jugador);
+        OnVictoria?.Invoke();
     }
 
     private void FinalizarPartida()
