@@ -1,27 +1,32 @@
 using UnityEngine;
 
+/// <summary>
 /// Genera pares de torres a intervalos regulares, con una altura
-/// aleatoria para que el hueco cambie de posición.
+/// aleatoria para que el hueco cambie de posición. Si los obstáculos
+/// van más rápido (niveles altos), aparecen en menos tiempo para que
+/// la distancia entre torres se mantenga igual.
+/// </summary>
 public class ObstacleSpawner : MonoBehaviour
 {
-    ///Molde (prefab) del par de torres que se va a copiar.
+    /// <summary>Molde (prefab) del par de torres que se va a copiar.</summary>
     [SerializeField] private GameObject prefabTorres;
 
-    ///Segundos entre cada par de torres.
+    /// <summary>Segundos entre cada par de torres (a velocidad normal).</summary>
     [SerializeField] private float intervalo = 2f;
 
-    ///Altura mínima del centro del hueco.
+    /// <summary>Altura mínima del centro del hueco.</summary>
     [SerializeField] private float alturaMin = -2f;
 
-    ///Altura máxima del centro del hueco.
+    /// <summary>Altura máxima del centro del hueco.</summary>
     [SerializeField] private float alturaMax = 2f;
 
-    ///Tiempo acumulado desde la última generación.
+    /// <summary>Tiempo acumulado desde la última generación.</summary>
     private float temporizador;
 
     private void Update()
     {
-        temporizador += Time.deltaTime;
+        float factor = GameManager.Instancia != null ? GameManager.Instancia.MultiplicadorVelocidad : 1f;
+        temporizador += Time.deltaTime * factor;
 
         if (temporizador >= intervalo)
         {
@@ -30,7 +35,7 @@ public class ObstacleSpawner : MonoBehaviour
         }
     }
 
-    ///Crea una copia del prefab en una altura aleatoria.
+    /// <summary>Crea una copia del prefab en una altura aleatoria.</summary>
     private void GenerarTorres()
     {
         float y = Random.Range(alturaMin, alturaMax);

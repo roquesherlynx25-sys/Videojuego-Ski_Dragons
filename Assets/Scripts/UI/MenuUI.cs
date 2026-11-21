@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Controla el menú principal: elegir modo y personaje, ver los objetos
-/// equipables e iniciar la partida.
+/// equipables, iniciar la partida y salir de la aplicación.
 /// </summary>
 public class MenuUI : MonoBehaviour
 {
@@ -12,9 +12,10 @@ public class MenuUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI textoPersonaje;
     [SerializeField] private TextMeshProUGUI textoDescripcion;
     [SerializeField] private GameObject panelEquipables;
+    [SerializeField] private TextMeshProUGUI textoSesion; // opcional
     [SerializeField] private string nombreEscenaJuego = "Juego";
 
-    ///<summary>Personaje que se va a llevar a la partida.</summary>
+    /// <summary>Personaje que se va a llevar a la partida.</summary>
     private Personaje personajeElegido;
 
     private void Start()
@@ -24,7 +25,25 @@ public class MenuUI : MonoBehaviour
         ElegirJinete();
     }
 
-    //Modos (un método por botón)
+    private void Update()
+    {
+        // Muestra el usuario, la hora de entrada y el tiempo de permanencia.
+        if (textoSesion == null) return;
+
+        SessionManager sm = SessionManager.Instancia;
+        if (sm != null && sm.Sesion != null)
+        {
+            textoSesion.text = "Usuario: " + sm.Sesion.Usuario +
+                               "   Entrada: " + sm.Sesion.HoraEntrada.ToString("HH:mm:ss") +
+                               "   Permanencia: " + sm.Sesion.PermanenciaTexto;
+        }
+        else
+        {
+            textoSesion.text = "Sin sesión (abre el juego desde Login)";
+        }
+    }
+
+    // ---------- Modos (un método por botón) ----------
     public void ElegirModoInfinito() { ElegirModo(TipoModo.Infinito); }
     public void ElegirModoNiveles() { ElegirModo(TipoModo.Niveles); }
     public void ElegirModoBiomas() { ElegirModo(TipoModo.Biomas); }
@@ -43,13 +62,13 @@ public class MenuUI : MonoBehaviour
             case TipoModo.Infinito:
                 return "Sin final: suma puntos por cada torre y monedas.";
             case TipoModo.Niveles:
-                return "Capas de la atmósfera con porcentaje de avance. (En construcción)";
+                return "7 capas de la atmósfera, de la Tierra a la Galaxia, con el porcentaje de cada etapa.";
             default:
                 return "Objetos, enemigos y desbloqueo con monedas. (En construcción)";
         }
     }
 
-    //Personajes
+    // ---------- Personajes ----------
     public void ElegirJinete()
     {
         personajeElegido = new Jinete(SesionJuego.NombreUsuario);
@@ -74,20 +93,35 @@ public class MenuUI : MonoBehaviour
         textoDescripcion.text = personajeElegido.Rol + ". " + descripcion;
     }
 
-    //Equipables
+    // ---------- Equipables ----------
     public void AbrirEquipables() { panelEquipables.SetActive(true); }
     public void CerrarEquipables() { panelEquipables.SetActive(false); }
 
-    //Iniciar
+    // ---------- Iniciar y salir ----------
     public void Iniciar()
     {
-        if (SesionJuego.ModoSeleccionado != TipoModo.Infinito)
+        if (SesionJuego.ModoSeleccionado == TipoModo.Biomas)
         {
-            textoDescripcion.text = "Ese modo aún está en construcción. Elige Infinito.";
+            textoDescripcion.text = "El modo Biomas aún está en construcción. Elige Infinito o Niveles.";
             return;
         }
 
         SesionJuego.Jugador.PersonajeSeleccionado = personajeElegido;
         SceneManager.LoadScene(nombreEscenaJuego);
+    }
+
+    /// <summary>Cierra la sesión (escribe la bitácora) y sale de la aplicación.</summary>
+    public void Salir()
+    {
+        if (SessionManager.Instancia != null)
+        {
+            SessionManager.Instancia.CerrarSesion();
+        }
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 }

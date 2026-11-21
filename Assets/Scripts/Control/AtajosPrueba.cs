@@ -1,9 +1,10 @@
 using UnityEngine;
 
 /// <summary>
-/// TEMPORAL: atajos de teclado para probar el Ángel sin la tienda.
+/// TEMPORAL: atajos de teclado para probar sin tienda ni esperar niveles.
 /// Solo funcionan dentro del editor de Unity (no en el ejecutable).
 /// 1 = +1 fragmento · 2 = equipar Ángel · 3 = +10 monedas · 4 = reiniciar progreso
+/// 5 = completar el nivel actual (modo Niveles)
 /// Borrar este script cuando exista la tienda.
 /// </summary>
 public class AtajosPrueba : MonoBehaviour
@@ -39,6 +40,16 @@ public class AtajosPrueba : MonoBehaviour
             jugador.Cargar(0, 0);
             Persistencia.BorrarTodo();
             Debug.Log("[Atajo] Progreso reiniciado. " + jugador);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha5) && GameManager.Instancia != null)
+        {
+            if (GameManager.Instancia.Modo is ModoNiveles niveles)
+            {
+                niveles.SaltarNivel();
+                GameManager.Instancia.ComprobarVictoria();
+                Debug.Log("[Atajo] " + niveles);
+            }
         }
 #endif
     }
