@@ -97,7 +97,7 @@ public class BancoPreguntas
             "La herencia virtual trata de evitar la repetición de miembros que se heredan, de manera directa o indirecta, de dos o más clases.",
             "La herencia virtual y el polimorfismo son uno mismo.");
 
-        Agregar("En herencia la etiqueta protected…",
+        Agregar("En herencia la etiqueta protected...",
             2,
             "Permite que los datos definidos bajo ella puedan ser modificados y consultados por los clientes de las clases derivadas.",
             "Permite que los datos definidos bajo ella sean de solo lectura para los miembros de las clases derivadas.",

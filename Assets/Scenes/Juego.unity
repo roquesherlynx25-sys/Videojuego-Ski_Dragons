@@ -1285,7 +1285,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: -190}
-  m_SizeDelta: {x: 900, y: 60}
+  m_SizeDelta: {x: 1000, y: 60}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!1 &918844562
 GameObject:
@@ -1482,7 +1482,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObstacleSpawner
   prefabTorres: {fileID: 4284508877060970846, guid: de28620b37d520847b901a174cfcd1d2, type: 3}
-  intervalo: 1
   alturaMin: -1.5
   alturaMax: 1.5
 --- !u!4 &1145047709

@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Guarda todo lo que tiene el jugador: monedas, fragmentos de Ángel,
-/// objetos equipados y el personaje elegido.
+/// Guarda todo lo que tiene el jugador: monedas, fragmentos de Ángel de la
+/// partida, objetos equipados, el personaje elegido y su inventario
+/// (lo comprado en la tienda).
 /// </summary>
 public class EstadoJugador
 {
@@ -14,16 +15,22 @@ public class EstadoJugador
     /// <summary>Monedas disponibles (solo se cambian con los métodos).</summary>
     public int Monedas => monedas;
 
-    /// <summary>Fragmentos de Ángel reunidos.</summary>
+    /// <summary>Fragmentos de Ángel reunidos en la partida actual.</summary>
     public int FragmentosAngel => fragmentosAngel;
 
-    /// <summary>Multiplicador de monedas (una runa lo pondrá en 2).</summary>
+    /// <summary>Multiplicador de monedas.</summary>
     public int MultiplicadorMonedas { get; set; } = 1;
+
+    /// <summary>Fracción de lo que roba el Grifo (1 = todo; la Runa de Codicia lo baja a 0.5).</summary>
+    public float FactorRobo { get; set; } = 1f;
 
     /// <summary>Personaje con el que se va a jugar.</summary>
     public Personaje PersonajeSeleccionado { get; set; }
 
-    /// <summary>Objetos equipados, en solo lectura.</summary>
+    /// <summary>Lo comprado en la tienda (personajes, biomas, niveles, runas, Ángeles).</summary>
+    public Inventario Inventario { get; private set; } = new Inventario();
+
+    /// <summary>Objetos equipados en la partida, en solo lectura.</summary>
     public IReadOnlyList<IEquipable> Equipados => equipados;
 
     /// <summary>Evento: cambió la cantidad de monedas.</summary>
@@ -49,6 +56,15 @@ public class EstadoJugador
         monedas -= cantidad;
         OnMonedasCambiadas?.Invoke(monedas);
         return true;
+    }
+
+    /// <summary>Pierde monedas (por ejemplo, un robo). Devuelve cuántas perdió de verdad.</summary>
+    public int PerderMonedas(int cantidad)
+    {
+        int perdidas = Math.Min(Math.Max(cantidad, 0), monedas);
+        monedas -= perdidas;
+        OnMonedasCambiadas?.Invoke(monedas);
+        return perdidas;
     }
 
     /// <summary>Suma un fragmento de Ángel.</summary>
@@ -77,6 +93,45 @@ public class EstadoJugador
         OnFragmentosCambiados?.Invoke(fragmentosAngel);
     }
 
+    /// <summary>Reemplaza el inventario (al cargar el progreso guardado).</summary>
+    public void CargarInventario(Inventario inventario)
+    {
+        Inventario = inventario ?? new Inventario();
+    }
+
+    /// <summary>
+    /// Se llama al empezar cada partida: reinicia los fragmentos, vuelve a
+    /// equipar las runas elegidas y, si el Ángel está equipado y hay uno de
+    /// reserva, empieza con 1 de 3 fragmentos.
+    /// </summary>
+    public void PrepararPartida()
+    {
+        foreach (IEquipable objeto in new List<IEquipable>(equipados))
+        {
+            Desequipar(objeto);
+        }
+
+        FactorRobo = 1f;
+        fragmentosAngel = 0;
+
+        if (Inventario.TieneRuna(Inventario.NombreRunaEscudo) && Inventario.EstaEquipada(Inventario.NombreRunaEscudo))
+        {
+            Equipar(new RunaEscudo(Inventario.NivelHabilidad(Inventario.NombreRunaEscudo)));
+        }
+
+        if (Inventario.TieneRuna(Inventario.NombreRunaImanCodicia) && Inventario.EstaEquipada(Inventario.NombreRunaImanCodicia))
+        {
+            Equipar(new RunaImanCodicia());
+        }
+
+        if (Inventario.EstaEquipada(Inventario.NombreAngel) && Inventario.UsarAngel())
+        {
+            fragmentosAngel = 1;
+        }
+
+        OnFragmentosCambiados?.Invoke(fragmentosAngel);
+    }
+
     /// <summary>Equipa un objeto si no lo tenía ya. Devuelve si lo logró.</summary>
     public bool Equipar(IEquipable objeto)
     {
@@ -98,7 +153,7 @@ public class EstadoJugador
 
     /// <summary>
     /// Busca entre los equipados un objeto de un tipo concreto
-    /// (por ejemplo Angel). Devuelve null si no hay ninguno.
+    /// (por ejemplo RunaEscudo). Devuelve null si no hay ninguno.
     /// </summary>
     public T ObtenerEquipado<T>() where T : class, IEquipable
     {

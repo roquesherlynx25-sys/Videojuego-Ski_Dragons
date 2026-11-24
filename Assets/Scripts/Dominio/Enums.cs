@@ -31,3 +31,35 @@ public enum TipoModo
     Niveles,
     Biomas
 }
+
+/// <summary>Biomas del juego (sin acentos ni eñe para usarlos como clave).</summary>
+public enum TipoBioma
+{
+    Sabana,
+    Montanas,
+    Grutas,
+    Volcanes,
+    Selva,
+    Desierto,
+    Tundra,
+    Taiga,
+    Marino
+}
+
+/// <summary>Qué le pasa al jugador cuando un enemigo lo toca.</summary>
+public enum EfectoContacto
+{
+    Ninguno,
+    RoboMonedas,
+    MataDragon
+}
+
+/// <summary>Resultado de intentar comprar algo en la tienda.</summary>
+public enum ResultadoCompra
+{
+    Exito,
+    MonedasInsuficientes,
+    YaAdquirido,
+    NivelMaximo,
+    NoDisponible
+}

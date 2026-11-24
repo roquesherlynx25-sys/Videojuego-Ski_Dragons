@@ -1,27 +1,27 @@
 using UnityEngine;
 
 /// <summary>
-/// Guarda y carga el progreso del jugador con PlayerPrefs:
-/// monedas, fragmentos de Ángel y récord del modo Infinito.
+/// Guarda y carga el progreso del jugador con PlayerPrefs: monedas,
+/// inventario (lo comprado en la tienda) y récord del modo Infinito.
 /// </summary>
 public static class Persistencia
 {
     private const string ClaveMonedas = "sd_monedas";
-    private const string ClaveFragmentos = "sd_fragmentos";
+    private const string ClaveInventario = "sd_inventario";
     private const string ClaveRecordInfinito = "sd_record_infinito";
 
-    /// <summary>Carga monedas y fragmentos guardados en el jugador.</summary>
+    /// <summary>Carga monedas e inventario guardados en el jugador.</summary>
     public static void Cargar(EstadoJugador jugador)
     {
-        jugador.Cargar(PlayerPrefs.GetInt(ClaveMonedas, 0),
-                       PlayerPrefs.GetInt(ClaveFragmentos, 0));
+        jugador.Cargar(PlayerPrefs.GetInt(ClaveMonedas, 0), 0);
+        jugador.CargarInventario(Inventario.Deserializar(PlayerPrefs.GetString(ClaveInventario, "")));
     }
 
-    /// <summary>Guarda monedas y fragmentos del jugador.</summary>
+    /// <summary>Guarda monedas e inventario del jugador.</summary>
     public static void Guardar(EstadoJugador jugador)
     {
         PlayerPrefs.SetInt(ClaveMonedas, jugador.Monedas);
-        PlayerPrefs.SetInt(ClaveFragmentos, jugador.FragmentosAngel);
+        PlayerPrefs.SetString(ClaveInventario, jugador.Inventario.Serializar());
         PlayerPrefs.Save();
     }
 
@@ -45,7 +45,7 @@ public static class Persistencia
     public static void BorrarTodo()
     {
         PlayerPrefs.DeleteKey(ClaveMonedas);
-        PlayerPrefs.DeleteKey(ClaveFragmentos);
+        PlayerPrefs.DeleteKey(ClaveInventario);
         PlayerPrefs.DeleteKey(ClaveRecordInfinito);
         PlayerPrefs.Save();
     }

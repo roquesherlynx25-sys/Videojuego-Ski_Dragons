@@ -9,7 +9,16 @@ public abstract class Dragon : Personaje
     /// <summary>Habilidad propia del dragón.</summary>
     public Habilidad Habilidad { get; }
 
-    protected Dragon(string nombre, Habilidad habilidad) : base(nombre)
+    /// <summary>Segundos de protección después de resistir un golpe.</summary>
+    public virtual float SegundosInvulnerableTrasGolpe => 0.5f;
+
+    /// <summary>Crea un dragón con una vida.</summary>
+    protected Dragon(string nombre, Habilidad habilidad) : this(nombre, habilidad, 1)
+    {
+    }
+
+    /// <summary>Crea un dragón con las vidas indicadas (sobrecarga).</summary>
+    protected Dragon(string nombre, Habilidad habilidad, int vidas) : base(nombre, vidas)
     {
         Habilidad = habilidad ?? throw new ArgumentNullException(nameof(habilidad));
     }

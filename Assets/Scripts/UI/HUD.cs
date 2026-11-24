@@ -2,9 +2,10 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Muestra en pantalla el progreso del modo (puntos o nivel y etapa, y
-/// monedas), el estado de la habilidad, los fragmentos del Ángel y los
-/// mensajes de Game Over y Victoria. Escucha los eventos del GameManager.
+/// Muestra en pantalla el progreso del modo (puntos, nivel o bioma, y
+/// monedas), el estado de la habilidad, los fragmentos del Ángel, la Runa
+/// de Escudo, mensajes cortos y los finales (Game Over y Victoria).
+/// Escucha los eventos del GameManager. Va en el Canvas.
 /// </summary>
 public class HUD : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class HUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI textoAngel; // opcional
 
     private DragonController dragon;
+    private TextMeshProUGUI textoMensaje;
+    private float mensajeHasta;
 
     private void Start()
     {
@@ -21,8 +24,18 @@ public class HUD : MonoBehaviour
         gm.OnProgresoCambiado += ActualizarProgreso;
         gm.OnGameOver += MostrarGameOver;
         gm.OnVictoria += MostrarVictoria;
+        gm.OnMensaje += MostrarMensaje;
 
         dragon = FindFirstObjectByType<DragonController>();
+
+        // El texto de los mensajes cortos se crea desde código (arriba, al centro).
+        textoMensaje = UiRuntime.CrearTexto(transform, "TextoMensaje", "", 36f, Vector2.zero,
+            new Vector2(1400f, 60f), TextAlignmentOptions.Center, new Color(1f, 0.92f, 0.4f));
+        RectTransform rect = textoMensaje.rectTransform;
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, -270f);
 
         ActualizarProgreso();
         textoGameOver.SetActive(false);
@@ -32,6 +45,11 @@ public class HUD : MonoBehaviour
     {
         ActualizarHabilidad();
         ActualizarAngel();
+
+        if (textoMensaje != null && Time.unscaledTime > mensajeHasta && textoMensaje.text != "")
+        {
+            textoMensaje.text = "";
+        }
     }
 
     private void OnDestroy()
@@ -41,6 +59,7 @@ public class HUD : MonoBehaviour
         GameManager.Instancia.OnProgresoCambiado -= ActualizarProgreso;
         GameManager.Instancia.OnGameOver -= MostrarGameOver;
         GameManager.Instancia.OnVictoria -= MostrarVictoria;
+        GameManager.Instancia.OnMensaje -= MostrarMensaje;
     }
 
     private void ActualizarProgreso()
@@ -54,11 +73,7 @@ public class HUD : MonoBehaviour
 
         if (dragon.Personaje is Dragon d)
         {
-            Habilidad h = d.Habilidad;
-            string estado = h.EstaActiva ? "ACTIVA"
-                          : h.EstaLista ? "LISTA (pulsa E)"
-                          : "recarga " + h.RecargaRestante.ToString("0.0") + " s";
-            textoHabilidad.text = h.Nombre + ": " + estado;
+            textoHabilidad.text = d.Habilidad.Nombre + ": " + EstadoDe(d.Habilidad, "E");
         }
         else
         {
@@ -71,11 +86,31 @@ public class HUD : MonoBehaviour
         if (textoAngel == null) return;
 
         EstadoJugador jugador = SesionJuego.Jugador;
-        Angel angel = jugador.ObtenerEquipado<Angel>();
+        string texto = "Ángel: " + jugador.FragmentosAngel + "/" + Angel.FragmentosNecesarios + " fragmentos";
 
-        textoAngel.text = angel == null
-            ? ""
-            : "Ángel: " + jugador.FragmentosAngel + "/" + Angel.FragmentosNecesarios + " fragmentos";
+        RunaEscudo runa = jugador.ObtenerEquipado<RunaEscudo>();
+        if (runa != null)
+        {
+            texto += "     Runa de Escudo: " + EstadoDe(runa.Escudo, "Q");
+        }
+
+        textoAngel.text = texto;
+    }
+
+    /// <summary>Texto con el estado de una habilidad: activa, lista o recargando.</summary>
+    private static string EstadoDe(Habilidad habilidad, string tecla)
+    {
+        if (habilidad.EstaActiva) return "ACTIVA";
+        if (habilidad.EstaLista) return "LISTA (pulsa " + tecla + ")";
+        return "recarga " + habilidad.RecargaRestante.ToString("0.0") + " s";
+    }
+
+    private void MostrarMensaje(string mensaje)
+    {
+        if (textoMensaje == null) return;
+
+        textoMensaje.text = mensaje;
+        mensajeHasta = Time.unscaledTime + 2.5f;
     }
 
     private void MostrarGameOver()
@@ -89,16 +124,16 @@ public class HUD : MonoBehaviour
             record = (gm.NuevoRecord ? "¡NUEVO RÉCORD!" : "Récord: " + gm.Record) + "\n";
         }
 
-        MostrarMensaje("GAME OVER\n" + gm.Modo.TextoProgreso() + "\n" + record + "Pulsa R para reiniciar");
+        MostrarFinal("GAME OVER\n" + gm.Modo.TextoProgreso() + "\n" + record + "R: reiniciar   M: menú");
     }
 
     private void MostrarVictoria()
     {
         GameManager gm = GameManager.Instancia;
-        MostrarMensaje("¡VICTORIA!\n" + gm.Modo.TextoProgreso() + "\nPulsa R para reiniciar");
+        MostrarFinal("¡VICTORIA!\n" + gm.Modo.TextoProgreso() + "\nR: reiniciar   M: menú");
     }
 
-    private void MostrarMensaje(string mensaje)
+    private void MostrarFinal(string mensaje)
     {
         textoGameOver.SetActive(true);
 
