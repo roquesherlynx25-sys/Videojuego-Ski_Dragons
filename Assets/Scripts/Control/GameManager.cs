@@ -15,7 +15,7 @@ public class GameManager : MonoBehaviour
     /// <summary>Estado actual de la partida.</summary>
     public EstadoPartida Estado { get; private set; } = EstadoPartida.Jugando;
 
-    /// <summary>Modo de juego en curso (Infinito o Niveles).</summary>
+    /// <summary>Modo de juego en curso (Infinito, Niveles o Biomas).</summary>
     public ModoJuego Modo { get; private set; }
 
     /// <summary>Puntos de la partida (obstáculos superados).</summary>
@@ -45,8 +45,15 @@ public class GameManager : MonoBehaviour
     /// <summary>Evento: el jugador revivió (el dragón debe reaparecer).</summary>
     public event Action OnRevivir;
 
+    /// <summary>Evento: hay un mensaje corto para mostrar en pantalla.</summary>
+    public event Action<string> OnMensaje;
+
+    /// <summary>Nombre de la escena del menú (se abre con la tecla M al terminar).</summary>
+    private const string EscenaMenu = "MenuPrincipal";
+
+    // El Ángel es el mismo para todos: con 3 fragmentos (o 2 y una pregunta) se revive.
+    private readonly Angel angel = new Angel();
     private PreguntaPOO preguntaActual;
-    private Angel angelEnUso;
 
     private void Awake()
     {
@@ -63,26 +70,38 @@ public class GameManager : MonoBehaviour
         Modo = CrearModo(SesionJuego.ModoSeleccionado);
         Modo.OnProgresoCambiado += AvisarProgreso;
         Record = Persistencia.CargarRecordInfinito();
+
+        // Reinicia los fragmentos, equipa las runas y gasta el Ángel de reserva.
+        SesionJuego.Jugador.PrepararPartida();
+        Persistencia.Guardar(SesionJuego.Jugador);
     }
 
     private void Update()
     {
-        // Al terminar la partida (derrota o victoria), la tecla R reinicia.
+        // Al terminar la partida (derrota o victoria): R reinicia y M vuelve al menú.
         bool terminada = Estado == EstadoPartida.GameOver || Estado == EstadoPartida.Victoria;
+        if (!terminada) return;
 
-        if (terminada && Input.GetKeyDown(KeyCode.R))
+        if (Input.GetKeyDown(KeyCode.R))
         {
             Reiniciar();
         }
+        else if (Input.GetKeyDown(KeyCode.M))
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(EscenaMenu);
+        }
     }
 
-    /// <summary>Crea el modo elegido en el menú (Biomas aún no existe).</summary>
+    /// <summary>Crea el modo elegido en el menú.</summary>
     private static ModoJuego CrearModo(TipoModo tipo)
     {
         switch (tipo)
         {
             case TipoModo.Niveles:
                 return new ModoNiveles();
+            case TipoModo.Biomas:
+                return new ModoBiomas(SesionJuego.BiomaSeleccionado);
             case TipoModo.Infinito:
             default:
                 return new ModoInfinito();
@@ -92,6 +111,12 @@ public class GameManager : MonoBehaviour
     private void AvisarProgreso()
     {
         OnProgresoCambiado?.Invoke();
+    }
+
+    /// <summary>Muestra un mensaje corto en pantalla.</summary>
+    public void NotificarMensaje(string mensaje)
+    {
+        OnMensaje?.Invoke(mensaje);
     }
 
     /// <summary>Suma un obstáculo superado, solo si la partida sigue en curso.</summary>
@@ -112,37 +137,51 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>El dragón recogió una moneda: se suma al jugador y al modo.</summary>
-    public void RecogerMoneda(Moneda moneda)
+    /// <summary>El dragón recogió un objeto (moneda, oveja...): se suma al jugador y al modo.</summary>
+    public void RecogerObjeto(ObjetoJuego objeto)
     {
-        if (Estado != EstadoPartida.Jugando || moneda == null) return;
+        if (Estado != EstadoPartida.Jugando || objeto == null) return;
 
         EstadoJugador jugador = SesionJuego.Jugador;
         int antes = jugador.Monedas;
-        moneda.AlRecoger(jugador);
+        objeto.AlRecoger(jugador);
         Modo.RegistrarMoneda(jugador.Monedas - antes); // incluye el multiplicador
     }
 
+    /// <summary>El dragón recogió una moneda.</summary>
+    public void RecogerMoneda(Moneda moneda)
+    {
+        RecogerObjeto(moneda);
+    }
+
+    /// <summary>El dragón recogió un fragmento de Ángel.</summary>
+    public void RecogerFragmentoAngel()
+    {
+        if (Estado != EstadoPartida.Jugando) return;
+
+        angel.AlRecoger(SesionJuego.Jugador);
+        NotificarMensaje("¡Fragmento de Ángel! " + SesionJuego.Jugador.FragmentosAngel + "/" + Angel.FragmentosNecesarios);
+    }
+
     /// <summary>
-    /// El dragón perdió (choque o salió de pantalla). Si tiene el Ángel
-    /// equipado puede revivir; si no, la partida termina.
+    /// El dragón perdió (choque o salió de pantalla). Con 3 fragmentos del
+    /// Ángel revive; con 2, responde una pregunta; si no, la partida termina.
     /// </summary>
     public void TerminarPartida()
     {
         if (Estado != EstadoPartida.Jugando) return;
 
         EstadoJugador jugador = SesionJuego.Jugador;
-        Angel angel = jugador.ObtenerEquipado<Angel>();
 
-        if (angel != null && angel.PuedeRevivir(jugador))
+        if (angel.PuedeRevivir(jugador))
         {
-            Revivir(angel);
+            Revivir();
             return;
         }
 
-        if (angel != null && angel.PuedeRevivirConPregunta(jugador))
+        if (angel.PuedeRevivirConPregunta(jugador))
         {
-            IniciarPregunta(angel);
+            IniciarPregunta();
             return;
         }
 
@@ -160,7 +199,7 @@ public class GameManager : MonoBehaviour
         if (correcta)
         {
             SesionJuego.Jugador.AgregarFragmentoAngel(); // el fragmento que faltaba
-            Revivir(angelEnUso);
+            Revivir();
         }
         else
         {
@@ -168,23 +207,30 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void IniciarPregunta(Angel angel)
+    private void IniciarPregunta()
     {
-        angelEnUso = angel;
         preguntaActual = BancoPreguntas.Instancia.ObtenerAleatoria();
         Estado = EstadoPartida.Pregunta;
         Time.timeScale = 0f;
         OnPreguntaRevivir?.Invoke(preguntaActual);
     }
 
-    private void Revivir(Angel angel)
+    private void Revivir()
     {
         angel.Consumir(SesionJuego.Jugador);
         Persistencia.Guardar(SesionJuego.Jugador);
 
+        // El Ángel limpia los enemigos que hay en pantalla.
+        EnemigoEnJuego[] enemigos = FindObjectsByType<EnemigoEnJuego>(FindObjectsSortMode.None);
+        foreach (EnemigoEnJuego enemigo in enemigos)
+        {
+            Destroy(enemigo.gameObject);
+        }
+
         Estado = EstadoPartida.Jugando;
         Time.timeScale = 1f;
         OnRevivir?.Invoke();
+        NotificarMensaje("¡El Ángel te revivió!");
         AvisarProgreso();
     }
 

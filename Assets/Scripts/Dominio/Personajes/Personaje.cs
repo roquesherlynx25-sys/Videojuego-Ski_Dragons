@@ -76,6 +76,15 @@ public abstract class Personaje
         }
     }
 
+    /// <summary>Vuelve a la vida con 1 vida (lo usa el Ángel al revivir).</summary>
+    public void Revivir()
+    {
+        if (vidas <= 0)
+        {
+            vidas = 1;
+        }
+    }
+
     /// <summary>
     /// Activa la habilidad del personaje. Por defecto no hace nada;
     /// los dragones lo sobrescriben (polimorfismo).

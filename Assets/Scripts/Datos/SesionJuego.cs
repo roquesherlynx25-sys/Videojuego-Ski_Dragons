@@ -4,11 +4,14 @@
 /// </summary>
 public static class SesionJuego
 {
-    /// <summary>Estado del jugador (monedas, fragmentos, personaje elegido...).</summary>
+    /// <summary>Estado del jugador (monedas, inventario, personaje elegido...).</summary>
     public static EstadoJugador Jugador { get; } = CrearJugador();
 
     /// <summary>Modo de juego elegido en el menú.</summary>
     public static TipoModo ModoSeleccionado { get; set; } = TipoModo.Infinito;
+
+    /// <summary>Bioma elegido para el modo Biomas (Sabana por defecto).</summary>
+    public static Bioma BiomaSeleccionado { get; set; } = new Sabana();
 
     /// <summary>Nombre del usuario (el Jinete lo usa). Lo pone el login.</summary>
     public static string NombreUsuario { get; set; } = "Jinete";

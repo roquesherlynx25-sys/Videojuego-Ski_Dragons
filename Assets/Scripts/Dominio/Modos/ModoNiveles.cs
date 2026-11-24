@@ -40,6 +40,12 @@ public class ModoNiveles : ModoJuego
     /// <summary>La velocidad de los obstáculos depende del nivel actual.</summary>
     public override float MultiplicadorVelocidad => NivelActual.MultiplicadorVelocidad;
 
+    /// <summary>El cielo cambia de color con cada nivel.</summary>
+    public override ColorRgb ColorFondo => NivelActual.ColorFondo;
+
+    /// <summary>Fondo del nivel actual (Resources/Sprites/fondo_tierra, etc.).</summary>
+    public override string NombreFondo => NivelActual.Nombre.ToLowerInvariant();
+
     /// <summary>Evento: el jugador pasó a un nivel nuevo.</summary>
     public event Action<Nivel> OnNivelCambiado;
 

@@ -3,30 +3,50 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Controla el menú principal: elegir modo y personaje, ver los objetos
-/// equipables, iniciar la partida y salir de la aplicación.
+/// Controla el menú principal: elegir modo, personaje y bioma, abrir la
+/// tienda y los equipables, iniciar la partida y salir. La tienda, los
+/// equipables y los biomas se arman por código (no hay que dibujarlos).
 /// </summary>
 public class MenuUI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI textoModo;
     [SerializeField] private TextMeshProUGUI textoPersonaje;
     [SerializeField] private TextMeshProUGUI textoDescripcion;
-    [SerializeField] private GameObject panelEquipables;
+    [SerializeField] private GameObject panelEquipables; // panel antiguo: ya no se usa
     [SerializeField] private TextMeshProUGUI textoSesion; // opcional
     [SerializeField] private string nombreEscenaJuego = "Juego";
 
     /// <summary>Personaje que se va a llevar a la partida.</summary>
     private Personaje personajeElegido;
 
+    private TiendaPanelUI tienda;
+    private EquipablesPanelUI equipables;
+    private BiomasPanelUI biomas;
+    private TextMeshProUGUI textoMonedas;
+
     private void Start()
     {
-        panelEquipables.SetActive(false);
+        if (panelEquipables != null) panelEquipables.SetActive(false);
+
+        tienda = new TiendaPanelUI(transform, ActualizarMonedas);
+        equipables = new EquipablesPanelUI(transform, ActualizarMonedas);
+        biomas = new BiomasPanelUI(transform, AlElegirBioma);
+
+        // Texto de monedas (arriba a la derecha) y botón de la tienda, creados por código.
+        textoMonedas = UiRuntime.CrearTexto(transform, "TextoMonedas", "", 36f, new Vector2(680f, 490f),
+            new Vector2(500f, 60f), TextAlignmentOptions.MidlineRight, new Color(1f, 0.85f, 0.2f));
+        UiRuntime.CrearBoton(transform, "BtnTienda", "Tienda", new Vector2(-700f, -350f),
+            new Vector2(300f, 100f), AbrirTienda);
+
         ElegirModoInfinito();
         ElegirJinete();
+        ActualizarMonedas();
     }
 
     private void Update()
     {
+        ActualizarMonedas();
+
         // Muestra el usuario, la hora de entrada y el tiempo de permanencia.
         if (textoSesion == null) return;
 
@@ -43,14 +63,34 @@ public class MenuUI : MonoBehaviour
         }
     }
 
+    private void ActualizarMonedas()
+    {
+        if (textoMonedas != null)
+        {
+            textoMonedas.text = "Monedas: " + SesionJuego.Jugador.Monedas;
+        }
+    }
+
     // ---------- Modos (un método por botón) ----------
     public void ElegirModoInfinito() { ElegirModo(TipoModo.Infinito); }
     public void ElegirModoNiveles() { ElegirModo(TipoModo.Niveles); }
-    public void ElegirModoBiomas() { ElegirModo(TipoModo.Biomas); }
+
+    public void ElegirModoBiomas()
+    {
+        ElegirModo(TipoModo.Biomas);
+        biomas.Mostrar();
+    }
 
     private void ElegirModo(TipoModo modo)
     {
         SesionJuego.ModoSeleccionado = modo;
+
+        if (modo == TipoModo.Biomas)
+        {
+            AlElegirBioma(SesionJuego.BiomaSeleccionado);
+            return;
+        }
+
         textoModo.text = "Modo: " + modo;
         textoDescripcion.text = DescribirModo(modo);
     }
@@ -60,12 +100,19 @@ public class MenuUI : MonoBehaviour
         switch (modo)
         {
             case TipoModo.Infinito:
-                return "Sin final: suma puntos por cada torre y monedas.";
+                return "Sin final: suma puntos por cada torre y monedas. Cada vez más difícil.";
             case TipoModo.Niveles:
                 return "7 capas de la atmósfera, de la Tierra a la Galaxia, con el porcentaje de cada etapa.";
             default:
-                return "Objetos, enemigos y desbloqueo con monedas. (En construcción)";
+                return "Elige un bioma: enemigos, ovejas y dificultad propia.";
         }
+    }
+
+    /// <summary>Se llama al elegir un bioma en el panel de biomas.</summary>
+    private void AlElegirBioma(Bioma bioma)
+    {
+        textoModo.text = "Modo: Biomas - " + bioma.Nombre;
+        textoDescripcion.text = "Bioma " + bioma.Nombre + ": enemigos y ovejas (" + bioma.RecompensaOveja + " monedas cada una).";
     }
 
     // ---------- Personajes ----------
@@ -77,14 +124,32 @@ public class MenuUI : MonoBehaviour
 
     public void ElegirAndary()
     {
-        personajeElegido = new DragonAndary();
-        MostrarPersonaje("Habilidad Tiempo: reduce el tiempo a la mitad.");
+        EstadoJugador jugador = SesionJuego.Jugador;
+
+        if (!jugador.Inventario.TienePersonaje(Inventario.NombreAndary))
+        {
+            textoDescripcion.text = "El Dragón Andary cuesta 350 monedas. Cómpralo en la Tienda.";
+            return;
+        }
+
+        int nivel = jugador.Inventario.NivelHabilidad(Inventario.ClaveTiempo);
+        personajeElegido = new DragonAndary(nivel);
+        MostrarPersonaje("Habilidad Tiempo (nivel " + nivel + "): reduce el tiempo a la mitad con la tecla E.");
     }
 
     public void ElegirGorgon()
     {
-        personajeElegido = new DragonGorgon();
-        MostrarPersonaje("Habilidad Dureza: escudo temporal contra obstáculos.");
+        EstadoJugador jugador = SesionJuego.Jugador;
+
+        if (!jugador.Inventario.TienePersonaje(Inventario.NombreGorgon))
+        {
+            textoDescripcion.text = "El Dragón Gorgón cuesta 800 monedas. Cómpralo en la Tienda.";
+            return;
+        }
+
+        int nivel = jugador.Inventario.NivelHabilidad(Inventario.ClaveDureza);
+        personajeElegido = new DragonGorgon(nivel);
+        MostrarPersonaje("Dureza (nivel " + nivel + "): escudo con la tecla E y " + personajeElegido.Vidas + " vidas.");
     }
 
     private void MostrarPersonaje(string descripcion)
@@ -93,18 +158,15 @@ public class MenuUI : MonoBehaviour
         textoDescripcion.text = personajeElegido.Rol + ". " + descripcion;
     }
 
-    // ---------- Equipables ----------
-    public void AbrirEquipables() { panelEquipables.SetActive(true); }
-    public void CerrarEquipables() { panelEquipables.SetActive(false); }
+    // ---------- Tienda y equipables ----------
+    public void AbrirTienda() { tienda.Mostrar(); }
+    public void AbrirEquipables() { equipables.Mostrar(); }
+    public void CerrarEquipables() { equipables.Ocultar(); }
 
     // ---------- Iniciar y salir ----------
     public void Iniciar()
     {
-        if (SesionJuego.ModoSeleccionado == TipoModo.Biomas)
-        {
-            textoDescripcion.text = "El modo Biomas aún está en construcción. Elige Infinito o Niveles.";
-            return;
-        }
+        if (personajeElegido == null) ElegirJinete();
 
         SesionJuego.Jugador.PersonajeSeleccionado = personajeElegido;
         SceneManager.LoadScene(nombreEscenaJuego);
